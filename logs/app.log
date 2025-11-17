@@ -1,0 +1,31 @@
+{"time": "2025-11-09 22:46:53,793", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rafael', 'items': [{'item_id': 2, 'quantity': 5}]}"}
+{"time": "2025-11-09 22:50:51,530", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rafael', 'items': [{'item_id': 2, 'quantity': 5}]}"}
+{"time": "2025-11-09 22:52:01,838", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rafael', 'items': [{'item_id': 2, 'quantity': 5}]}"}
+{"time": "2025-11-09 22:53:13,347", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rafael', 'items': [{'item_id': 2, 'quantity': 5}]}"}
+{"time": "2025-11-09 22:53:13,363", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM1, items=1"}
+{"time": "2025-11-11 12:44:56,203", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rodriguez', 'items': [{'item_id': 3, 'quantity': 10}]}"}
+{"time": "2025-11-11 12:44:56,224", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM1, items=1"}
+{"time": "2025-11-11 13:51:47,135", "level": "INFO", "logger": "ambulance", "message": "cleanup.started"}
+{"time": "2025-11-11 13:51:47,226", "level": "INFO", "logger": "ambulance", "message": "cleanup.finished → checks=0, requisitions=0, expenses=0"}
+{"time": "2025-11-13 00:27:00,218", "level": "INFO", "logger": "ambulance", "message": "cleanup.started"}
+{"time": "2025-11-14 03:14:53,342", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rafael', 'items': [{'item_id': 6, 'quantity': 1}]}"}
+{"time": "2025-11-14 03:14:53,369", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM1, items=1"}
+{"time": "2025-11-14 03:14:53,372", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Rafael → CM1 (1 ítems)"}
+{"time": "2025-11-14 03:21:08,581", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'S56', 'paramedic': 'Rafael', 'items': [{'item_id': 6, 'quantity': 1}]}"}
+{"time": "2025-11-14 03:21:08,594", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=S56, items=1"}
+{"time": "2025-11-14 03:21:08,598", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Rafael → S56 (1 ítems)"}
+{"time": "2025-11-14 03:28:12,748", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Rafael', 'items': [{'item_id': 3, 'quantity': 6}]}"}
+{"time": "2025-11-14 03:28:12,762", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM1, items=1"}
+{"time": "2025-11-14 03:28:12,766", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Rafael → CM1 (1 ítems)"}
+{"time": "2025-11-14 03:30:02,009", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'S56', 'paramedic': 'Ruben', 'items': [{'item_id': 7, 'quantity': 1}]}"}
+{"time": "2025-11-14 03:30:02,022", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=S56, items=1"}
+{"time": "2025-11-14 03:30:02,024", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Ruben → S56 (1 ítems)"}
+{"time": "2025-11-14 15:01:37,282", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM1', 'paramedic': 'Joan', 'items': [{'item_id': 6, 'quantity': 1}, {'item_id': 8, 'quantity': 1}, {'item_id': 3, 'quantity': 1}, {'item_id': 5, 'quantity': 1}]}"}
+{"time": "2025-11-14 15:01:37,332", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM1, items=4"}
+{"time": "2025-11-14 15:01:37,338", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Joan → CM1 (4 ítems)"}
+{"time": "2025-11-14 15:02:27,417", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM2', 'paramedic': 'Rafael', 'items': [{'item_id': 6, 'quantity': 1}]}"}
+{"time": "2025-11-14 15:02:27,430", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM2, items=1"}
+{"time": "2025-11-14 15:02:27,432", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Rafael → CM2 (1 ítems)"}
+{"time": "2025-11-16 22:48:59,054", "level": "INFO", "logger": "ambulance", "message": "Transferencia iniciada por Admin → {'ambulance': 'CM2', 'paramedic': 'Miguel', 'items': [{'item_id': 9, 'quantity': 1}, {'item_id': 3, 'quantity': 1}, {'item_id': 5, 'quantity': 1}, {'item_id': 12, 'quantity': 1}, {'item_id': 8, 'quantity': 1}, {'item_id': 6, 'quantity': 1}, {'item_id': 7, 'quantity': 1}, {'item_id': 10, 'quantity': 1}]}"}
+{"time": "2025-11-16 22:48:59,123", "level": "INFO", "logger": "ambulance", "message": "transfer.completed → ambulance=CM2, items=8"}
+{"time": "2025-11-16 22:48:59,128", "level": "INFO", "logger": "ambulance", "message": "Transferencia completada: Miguel → CM2 (8 ítems)"}
