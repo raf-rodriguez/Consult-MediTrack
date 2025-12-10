@@ -1,9 +1,9 @@
 from rest_framework import viewsets, filters, status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from .models import AmbulanceCheck, InventoryItem, Transfer, MedicationExpense, AmbulanceInventory, AmbulanceRequisition
+from .models import AmbulanceCheck, InventoryItem, Transfer, MedicationExpense, AmbulanceInventory, AmbulanceRequisition, RecommendedInventory
 from .serializers import (AmbulanceCheckSerializer, InventoryItemSerializer,
-                          TransferSerializer, MedicationExpenseSerializer, AmbulanceInventorySerializer, AmbulanceRequisitionSerializer)
+                          TransferSerializer, MedicationExpenseSerializer, AmbulanceInventorySerializer, AmbulanceRequisitionSerializer, RecommendedInventorySerializer, InventoryItemWithMetaSerializer)
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
@@ -20,20 +20,23 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from .models import ActivityLog
 from rest_framework import serializers
 import logging
-
+from rest_framework.permissions import SAFE_METHODS, BasePermission
+from django.db.models import Q
+from django.db import transaction
 
 log = logging.getLogger("ambulance")
 
 # -----------------------------------
 #           Ambulance Check
 #------------------------------------
+
 class AmbulanceCheckViewSet(viewsets.ModelViewSet):
     queryset = AmbulanceCheck.objects.all()
     serializer_class = AmbulanceCheckSerializer
     permission_classes = [AllowPostAnyOtherwiseAuth]
 
-    # 💡 Filtrado por ambulancia y rango de fechas
     def get_queryset(self):
+        # ... tu código de filtrado existente ...
         queryset = super().get_queryset()
         ambulance = self.request.query_params.get('ambulance')
         date_from = self.request.query_params.get('date_from')
@@ -43,112 +46,159 @@ class AmbulanceCheckViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(ambulance__iexact=ambulance)
         if date_from and date_to:
             queryset = queryset.filter(date__range=[date_from, date_to])
-
         return queryset
+
+    # ✅ SOBREESCRIBIMOS EL CREATE
+    # views.py (Dentro de AmbulanceCheckViewSet)
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        missing_items = data.pop('missing_items', [])
+        
+        # Guardar Chequeo
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        checklist = serializer.save()
+
+        # Lista para devolver al Frontend en el Pop-up final
+        requisitioned_details = [] 
+
+        if missing_items:
+            ambulance_name = checklist.ambulance
+            responsible = checklist.staff.split(',')[0] if checklist.staff else "Sistema"
+            
+            for item in missing_items:
+                item_name = item.get('name', '').strip()
+                qty_needed = int(item.get('quantity', 0))
+
+                if qty_needed <= 0: continue
+
+                # Lógica de Búsqueda Inteligente (Exacta -> Contiene -> Inversa)
+                warehouse_item = InventoryItem.objects.filter(name__iexact=item_name, location__iexact="Almacén").first()
+                if not warehouse_item:
+                    warehouse_item = InventoryItem.objects.filter(name__icontains=item_name, location__iexact="Almacén").first()
+                if not warehouse_item:
+                     all_storage = InventoryItem.objects.filter(location__iexact="Almacén")
+                     for prod in all_storage:
+                        if prod.name.lower() in item_name.lower():
+                            warehouse_item = prod
+                            break
+                
+                if not warehouse_item:
+                    continue # No se encontró, se salta
+                
+                # Movimiento de Inventario
+                warehouse_item.quantity -= qty_needed
+                warehouse_item.save()
+
+                amb_inv_item, _ = AmbulanceInventory.objects.get_or_create(
+                    ambulance=ambulance_name,
+                    name=warehouse_item.name,
+                    defaults={'category': warehouse_item.category, 'unit': warehouse_item.unit, 'quantity': 0}
+                )
+                amb_inv_item.quantity += qty_needed
+                amb_inv_item.save()
+
+                # Logs
+                AmbulanceRequisition.objects.create(paramedic=responsible, ambulance=ambulance_name, item=warehouse_item, quantity=qty_needed)
+                Transfer.objects.create(item=warehouse_item, from_location="Almacén", to_location=ambulance_name, quantity=qty_needed, performed_by=responsible)
+                
+                # ✅ GUARDAMOS LO QUE SÍ SE MOVIÓ PARA EL POP-UP
+                requisitioned_details.append({
+                    "name": warehouse_item.name,
+                    "quantity": qty_needed,
+                    "unit": warehouse_item.unit
+                })
+
+        # Retornamos la lista de lo que se requisó junto con el success
+        return Response({
+            "status": "success",
+            "data": serializer.data,
+            "requisition_summary": requisitioned_details # <--- ESTO ES NUEVO
+        }, status=status.HTTP_201_CREATED)
+
+        # Retornamos éxito
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 # -------------------------------
 #           Inventory
 #--------------------------------
 @extend_schema_view(
-    list=extend_schema(
-        summary="Listar ítems del inventario",
-        description="Devuelve la lista completa de ítems en el inventario del almacén.",
-        tags=["Inventario"]
-    ),
-    retrieve=extend_schema(
-        summary="Obtener un ítem del inventario",
-        description="Devuelve la información detallada de un ítem específico.",
-        tags=["Inventario"]
-    ),
-    create=extend_schema(
-        summary="Crear un nuevo ítem",
-        description="Agrega un nuevo ítem al inventario del almacén.",
-        tags=["Inventario"]
-    ),
-    update=extend_schema(
-        summary="Actualizar un ítem (PUT)",
-        description="Reemplaza por completo los datos del ítem.",
-        tags=["Inventario"]
-    ),
-    partial_update=extend_schema(
-        summary="Actualización parcial (PATCH)",
-        description="Modifica uno o varios campos del ítem sin reemplazarlo todo.",
-        tags=["Inventario"]
-    ),
-    destroy=extend_schema(
-        summary="Eliminar ítem",
-        description="Elimina un ítem del inventario.",
-        tags=["Inventario"]
-    ),
+    list=extend_schema(summary="Listar inventario", tags=["Inventario"]),
+    create=extend_schema(summary="Crear ítem", tags=["Inventario"]),
+    update=extend_schema(summary="Actualizar ítem", tags=["Inventario"]),
+    destroy=extend_schema(summary="Eliminar ítem", tags=["Inventario"]),
 )
 class InventoryItemViewSet(viewsets.ModelViewSet):
-    """
-    Gestiona el inventario del almacén.
-    Permite crear, editar, listar, buscar y eliminar ítems.
-    """
     queryset = InventoryItem.objects.all().order_by("name")
     serializer_class = InventoryItemSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ["name", "location"]
+    search_fields = ["name", "location", "category"]
     permission_classes = [IsAdminOrReadOnly]
 
-   # 🟢 Crear ítem con log
     def create(self, request, *args, **kwargs):
+        # 1. Crear Item en Almacén
         response = super().create(request, *args, **kwargs)
-        ActivityLog.objects.create(
-            user=request.user.username if request.user.is_authenticated else "Anon",
-            action='CREATE',
-            entity='InventoryItem',
-            description=f"Se agregó {request.data.get('name')} ({request.data.get('quantity')} unidades) al inventario."
-        )
+
+        item_id = response.data.get("id")
+        name = response.data.get("name")
+        meta_quantity = int(request.data.get("meta", 1)) # Capturar Meta
+
+        # 2. Log
+        if request.user.is_authenticated:
+            ActivityLog.objects.create(
+                user=request.user.username, action='CREATE', entity='InventoryItem',
+                description=f"Se creó '{name}' en Almacén."
+            )
+
+        # 3. Crear Recomendación (Meta)
+        try:
+            item_obj = InventoryItem.objects.get(id=item_id)
+            
+            # ✅ CORREGIDO: Ya no usamos 'ambulance=None' porque el campo no existe.
+            # Buscamos por 'item' (item_id) y creamos si no existe.
+            RecommendedInventory.objects.get_or_create(
+                item=item_obj,
+                defaults={
+                    'item_name': item_obj.name,
+                    'category': item_obj.category,
+                    'recommended_quantity': meta_quantity
+                }
+            )
+            print(f"✅ Meta de {meta_quantity} creada para {name}")
+            
+        except Exception as e:
+            print(f"⚠️ Error creando meta para {name}: {e}")
+
         return response
 
-    # 🟡 Actualizar ítem con registro de diferencia
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        old_quantity = instance.quantity  # Cantidad ANTES de actualizar
-
+        old_qty = instance.quantity
         response = super().update(request, *args, **kwargs)
-
-        # Después de guardar — nueva cantidad
-        new_quantity = int(response.data.get("quantity"))
-        added = new_quantity - old_quantity  # Diferencia real
-
-        # Evitar logs raros cuando el cambio no es numérico
-        if added > 0:
-            change_desc = f"Se añadieron {added} unidades."
-        elif added < 0:
-            change_desc = f"Se retiraron {abs(added)} unidades."
-        else:
-            change_desc = "No hubo cambio en la cantidad."
-
-        # 📝 Registrar en Activity Log
-        ActivityLog.objects.create(
-            action="UPDATE",
-            entity="InventoryItem",
-            user=request.user.username if request.user.is_authenticated else "Sistema",
-            description=(
-                f"{change_desc} → {instance.name}. "
-                f"Antes: {old_quantity} unidades → Ahora: {new_quantity} unidades."
+        
+        new_qty = int(response.data.get("quantity", 0))
+        if new_qty != old_qty and request.user.is_authenticated:
+            diff = new_qty - old_qty
+            action = "añadieron" if diff > 0 else "retiraron"
+            ActivityLog.objects.create(
+                action="UPDATE", entity="InventoryItem", user=request.user.username,
+                description=f"{instance.name}: Se {action} {abs(diff)}. Total: {new_qty}."
             )
-        )
         return response
 
-    # 🔴 Eliminar ítem con log
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         name = instance.name
-
         response = super().destroy(request, *args, **kwargs)
-
-        ActivityLog.objects.create(
-            user=request.user.username if request.user.is_authenticated else "Anon",
-            action='DELETE',
-            entity='InventoryItem',
-            description=f"Se eliminó {name} del inventario."
-        )
+        if request.user.is_authenticated:
+            ActivityLog.objects.create(
+                action="DELETE", entity="InventoryItem", user=request.user.username,
+                description=f"Se eliminó '{name}'."
+            )
         return response
-
 # ------------------------------
 #            Transfer
 #-------------------------------
@@ -169,7 +219,7 @@ class TransferViewSet(viewsets.ModelViewSet):
         .order_by("-created_at")
     )
     serializer_class = TransferSerializer
-    permission_classes = [IsParamedic | IsAdminOrReadOnly]
+    permission_classes = [AllowPostAnyOtherwiseAuth]
 
     def create(self, request, *args, **kwargs):
         log.info(f"Transferencia iniciada por {request.user.username} → {request.data}")
@@ -203,7 +253,7 @@ class TransferViewSet(viewsets.ModelViewSet):
             {"success": True, "transfers": results},
             status=201
         )
-
+    
 # ----------------------------------
 #         Medication Expenses
 #-----------------------------------
@@ -218,7 +268,7 @@ class MedicationExpenseViewSet(viewsets.ModelViewSet):
         .order_by("-created_at")
     )
     serializer_class = MedicationExpenseSerializer
-    permission_classes = [IsParamedic | IsAdminOrReadOnly]
+    permission_classes = [AllowPostAnyOtherwiseAuth]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -270,7 +320,6 @@ class MedicationExpenseViewSet(viewsets.ModelViewSet):
             created_records.append(serializer.data)
 
         return Response(created_records, status=status.HTTP_201_CREATED)
-    
     
 # --------------------------------------------
 #             Ambulancia Inventory
@@ -454,3 +503,19 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = ActivityLogSerializer
 
+#-------------------------------------------
+#             Recomendaciones
+#-------------------------------------------
+class RecommendedInventoryViewSet(viewsets.ModelViewSet):
+    queryset = RecommendedInventory.objects.all()
+    serializer_class = RecommendedInventorySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]  
+
+#-------------------------------------------
+#             Permisos
+#-------------------------------------------
+class IsAdminOrReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True  # <-- permite GET sin token
+        return bool(request.user and request.user.is_staff)

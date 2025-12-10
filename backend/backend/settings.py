@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'ambulance.apps.AmbulanceConfig',
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    'django_celery_beat',
 ]
 
 # -------------------------------
@@ -250,3 +251,16 @@ LOGGING = {
         },
     },
 }
+
+# --- Configuración de Celery ---
+# Usando Redis como broker (asegúrate de que Redis esté corriendo)
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+
+# Ajustes de Serialización
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Zona Horaria (Ajusta si es necesario)
+CELERY_TIMEZONE = 'America/Puerto_Rico'

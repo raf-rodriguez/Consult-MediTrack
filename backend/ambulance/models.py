@@ -35,17 +35,15 @@ class AmbulanceCheck(models.Model):
 
     # Secciones del inventario
     seccion_vehiculo = models.JSONField(default=dict)
-    seccion_vitales = models.JSONField(default=dict)
+    seccion_medical_equipment = models.JSONField(default=dict)
     seccion_inmovilizacion = models.JSONField(default=dict)
-    seccion_suministros = models.JSONField(default=dict)
-    seccion_miscelaneos = models.JSONField(default=dict)
     seccion_canalizacion = models.JSONField(default=dict)
-    seccion_ventilacion_monitor = models.JSONField(default=dict)
-    seccion_airway = models.JSONField(default=dict)
-    seccion_bulto_trauma = models.JSONField(default=dict)
-    seccion_entubacion = models.JSONField(default=dict)
+    seccion_oxigeno_airway = models.JSONField(default=dict)
     seccion_medicamentos = models.JSONField(default=dict)
-
+    seccion_miscelaneos = models.JSONField(default=dict)
+    seccion_entubacion = models.JSONField(default=dict)
+    seccion_equipo = models.JSONField(default=dict)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -205,3 +203,17 @@ class ActivityLog(models.Model):
     def __str__(self):
         return f"[{self.get_action_display()}] {self.entity} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
+# -----------------------------------------
+#         Recomendaciones 
+# -----------------------------------------
+class RecommendedInventory(models.Model):
+    item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE, null=True, blank=True)
+    item_name = models.CharField(max_length=200)
+    category = models.CharField(max_length=100)
+    recommended_quantity = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'recommended_inventory'
+
+    def __str__(self):
+        return f"{self.item_name} - {self.category}"

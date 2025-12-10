@@ -3,9 +3,8 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (AmbulanceCheckViewSet, InventoryItemViewSet, TransferViewSet, 
                     MedicationExpenseViewSet, AmbulanceInventoryViewSet, AmbulanceRequisitionListAPIView,
-                    AmbulanceRequisitionViewSet)
+                    AmbulanceRequisitionViewSet, RecommendedInventoryViewSet, StockAlertViewSet, ActivityLogViewSet)
 from .views import get_logged_in_user, secure_login
-from .views import StockAlertViewSet, ActivityLogViewSet
 
 router = DefaultRouter()
 router.register(r'checks', AmbulanceCheckViewSet, basename='check')
@@ -17,6 +16,7 @@ router.register(r'ambulance-inventory', AmbulanceInventoryViewSet, basename='amb
 router.register(r"ambulance-requisitions", AmbulanceRequisitionViewSet, basename="ambulance-requisition")
 router.register(r'alerts', StockAlertViewSet, basename='stockalert')
 router.register(r'activity-log', ActivityLogViewSet, basename='activity-log')
+router.register(r"recommended-inventory", RecommendedInventoryViewSet, basename="recommended-inventory")
 
 urlpatterns = [
     path('', include(router.urls)),

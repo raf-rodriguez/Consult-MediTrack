@@ -1,5 +1,3 @@
-// Ver la hoja de chequeo paguina principal
-
 import { useEffect, useState, useCallback } from "react";
 import { Table, Button, Card, Modal, Container } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
@@ -14,7 +12,11 @@ export default function AmbulanceChecksList() {
   const navigate = useNavigate();
   const [checks, setChecks] = useState([]);
   const [selectedCheck, setSelectedCheck] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  
+  // Modales
+  const [showModal, setShowModal] = useState(false); // Modal de "Ver Detalles"
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Modal Eliminar
+  const [checkToDelete, setCheckToDelete] = useState(null); // ID para borrar
 
   const fetchChecks = useCallback(async () => {
     try {
@@ -37,13 +39,23 @@ export default function AmbulanceChecksList() {
     setShowModal(true);
   };
 
-  const deleteCheck = async (id) => {
-    if (!window.confirm("⚠️ ¿Confirmar eliminación?")) return;
+  // 1️⃣ Paso 1: Abrir modal de confirmación
+  const confirmDelete = (id) => {
+    setCheckToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  // 2️⃣ Paso 2: Ejecutar la eliminación
+  const executeDelete = async () => {
+    if (!checkToDelete) return;
     try {
-      await api.delete(`/ambulance-checks/${id}/`);
+      await api.delete(`/ambulance-checks/${checkToDelete}/`);
+      setShowDeleteModal(false); 
       setShowModal(false);
+      setCheckToDelete(null);
       fetchChecks();
     } catch (err) {
+      console.error(err);
       alert("❌ Error eliminando");
     }
   };
@@ -55,8 +67,6 @@ export default function AmbulanceChecksList() {
     if (!selectedCheck) return;
 
     const doc = new jsPDF("p", "mm", "letter");
-
-    // ✅ Usa fuente estándar "Helvetica" (sí soporta acentos en jsPDF)
     doc.setFont("helvetica", "normal");
 
     const headerImg = new Image();
@@ -64,7 +74,6 @@ export default function AmbulanceChecksList() {
 
     headerImg.onload = () => {
       doc.addImage(headerImg, "PNG", 10, 10, 40, 25);
-
       doc.setFontSize(18);
       doc.text("CONSULT MEDICAL — Hoja de Chequeo", 120, 20, { align: "center" });
 
@@ -94,7 +103,7 @@ export default function AmbulanceChecksList() {
 
       y += 10;
 
-      // ✅ Staff y firmas
+      // ✅ Staff
       doc.setFontSize(14);
       doc.text("Staff", 14, y);
       y += 7;
@@ -147,20 +156,16 @@ export default function AmbulanceChecksList() {
     };
   };
 
-
-  // ✅ LISTA DE SECCIONES
   const sections = [
     "seccion_vehiculo",
-    "seccion_vitales",
+    "seccion_medical_equipment",
+    "seccion_equipo",
     "seccion_inmovilizacion",
-    "seccion_suministros",
-    "seccion_miscelaneos",
     "seccion_canalizacion",
-    "seccion_ventilacion_monitor",
-    "seccion_airway",
-    "seccion_bulto_trauma",
-    "seccion_entubacion",
+    "seccion_oxigeno_airway",
     "seccion_medicamentos",
+    "seccion_miscelaneos",
+    "seccion_entubacion"
   ];
 
   const buttonStyle = {
@@ -170,7 +175,13 @@ export default function AmbulanceChecksList() {
     fontWeight: 600,
   };
 
-  // ✅ RETURN PRINCIPAL
+  const deleteBtnStyle = {
+    background: "linear-gradient(90deg, #dc3545, #b02a37)",
+    color: "#fff",
+    border: "none",
+    fontWeight: 600,
+  };
+
   return (
     <div className="d-flex">
       <SidebarTop />
@@ -183,44 +194,24 @@ export default function AmbulanceChecksList() {
           minHeight: "100vh",
           padding: "40px 20px",
           color: "#F4F7FA",
-          position: "relative", // 👈 Necesario para el posicionamiento del fondo
+          position: "relative",
           zIndex: 0,
         }}
       >
-        {/* ✅ Fondo con logo */}
         <div
           style={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            backgroundImage: `url(${logo})`,
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "50%",
-            backgroundPosition: "center",
-            opacity: 0.05,
-            width: "100%",
-            height: "100%",
-            zIndex: 0,
-            pointerEvents: "none",
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+            backgroundImage: `url(${logo})`, backgroundRepeat: "no-repeat", backgroundSize: "50%",
+            backgroundPosition: "center", opacity: 0.05, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none",
           }}
         />
-        {/* 🎨 Borde difuminado oscuro entre sidebar y contenido */}
         <div
           style={{
-            position: "fixed",
-            top: 0,
-            left: "220px", // ancho del sidebar
-            width: "40px",
-            height: "100%",
-            background: "linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0))",
-            zIndex: 2,
-            pointerEvents: "none",
+            position: "fixed", top: 0, left: "220px", width: "40px", height: "100%",
+            background: "linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0))", zIndex: 2, pointerEvents: "none",
           }}
         />
 
-
-        {/* Contenido principal sobre el fondo */}
         <Container style={{ position: "relative", zIndex: 1 }}>
           <h3 className="text-primary fw-bold mb-4">🚑 Chequeos — Unidad {unit}</h3>
 
@@ -251,16 +242,16 @@ export default function AmbulanceChecksList() {
                     <Button
                       size="sm"
                       style={buttonStyle}
-                      className="rounded-pill"
+                      className="rounded-pill px-3"
                       onClick={() => openCheck(c.id)}
                     >
                       👁️ Ver
                     </Button>
                     <Button
                       size="sm"
-                      style={{ ...buttonStyle, background: "#dc3545" }}
-                      className="rounded-pill"
-                      onClick={() => deleteCheck(c.id)}
+                      style={deleteBtnStyle}
+                      className="rounded-pill px-3"
+                      onClick={() => confirmDelete(c.id)}
                     >
                       🗑️ Eliminar
                     </Button>
@@ -276,7 +267,6 @@ export default function AmbulanceChecksList() {
           <Modal.Header closeButton style={{ backgroundColor: "#0d6efd", color: "#fff" }}>
             <Modal.Title>Hoja de Chequeo — {unit}</Modal.Title>
           </Modal.Header>
-
           <Modal.Body style={{ backgroundColor: "#0A2A43", color: "#F4F7FA" }}>
             {selectedCheck && (
               <div>
@@ -285,47 +275,15 @@ export default function AmbulanceChecksList() {
                   <h4 className="fw-bold mt-2">CONSULT MEDICAL — HOJA DE CHEQUEO</h4>
                 </div>
 
-                {/* ✅ Información General */}
+                {/* Info General */}
                 <Card className="mb-3 p-3 text-white" style={{ background: "#0F304A", border: "1px solid #0d6efd" }}>
                   <h5 className="text-info fw-bold">✅ Información General</h5>
                   <p><b>Fecha:</b> {selectedCheck.date}</p>
                   <p><b>Ambulancia:</b> {selectedCheck.ambulance}</p>
-                  <p><b>Turno:</b> {selectedCheck.shift}</p>
-                  <p><b>Millage:</b> {selectedCheck.millage}</p>
-                  <p><b>Combustible:</b> {selectedCheck.combustible}</p>
-                  <p><b>Oxígeno M:</b> {selectedCheck.oxigeno_m}</p>
-                  <p><b>Oxígeno D:</b> {selectedCheck.oxigeno_d}</p>
                   <p><b>Observaciones:</b> {selectedCheck.observaciones ?? "-"}</p>
                 </Card>
 
-                {/* ✅ STAFF */}
-                <Card className="mb-3 p-3 text-white" style={{ background: "#0F304A", border: "1px solid #0d6efd" }}>
-                  <h5 className="text-info fw-bold">👥 Staff</h5>
-
-                  <p><b>Staff 1:</b> {selectedCheck.staff}</p>
-                  {selectedCheck.firma_staff1 && (
-                    <img
-                      src={selectedCheck.firma_staff1}
-                      alt="Firma 1"
-                      style={{ width: 180, border: "1px solid #fff", background: "#fff", padding: 5 }}
-                    />
-                  )}
-
-                  {selectedCheck.staff2 && (
-                    <>
-                      <p className="mt-3"><b>Staff 2:</b> {selectedCheck.staff2}</p>
-                      {selectedCheck.firma_staff2 && (
-                        <img
-                          src={selectedCheck.firma_staff2}
-                          alt="Firma 2"
-                          style={{ width: 180, border: "1px solid #fff", background: "#fff", padding: 5 }}
-                        />
-                      )}
-                    </>
-                  )}
-                </Card>
-
-                {/* ✅ Inventario */}
+                {/* 👇 AQUÍ ESTÁ EL USO DE TABLE QUE FALTABA 👇 */}
                 {sections.map((section) => (
                   <Card key={section} className="mb-2 p-2" style={{ background: "#0F304A", border: "1px solid #0069D9" }}>
                     <h6 className="text-info">
@@ -344,19 +302,73 @@ export default function AmbulanceChecksList() {
                     </Table>
                   </Card>
                 ))}
+                {/* 👆 FIN DEL USO DE TABLE 👆 */}
+                
               </div>
             )}
           </Modal.Body>
-
           <Modal.Footer style={{ background: "#0F304A" }}>
-            <Button style={buttonStyle} className="rounded-pill" onClick={() => setShowModal(false)}>
-              Cerrar
+            <Button style={buttonStyle} className="rounded-pill" onClick={() => setShowModal(false)}>Cerrar</Button>
+            <Button style={buttonStyle} className="rounded-pill" onClick={downloadPDF}>📄 Descargar PDF</Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* 🔴 MODAL DE ELIMINAR (ESTILO PREMIUM) */}
+        <Modal 
+          show={showDeleteModal} 
+          onHide={() => setShowDeleteModal(false)} 
+          centered 
+          backdrop="static"
+          keyboard={false}
+        >
+          <Modal.Header closeButton style={{ background: "linear-gradient(90deg, #dc3545, #8a1c2a)", border: "none" }}>
+            <Modal.Title className="fw-bold text-white">
+              ⚠️ Confirmar Eliminación
+            </Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body className="text-center py-5" style={{ backgroundColor: "#0F2537", color: "#fff" }}>
+            <div className="mb-3" style={{ fontSize: "4rem", filter: "drop-shadow(0 0 15px rgba(220, 53, 69, 0.4))" }}>
+              🗑️
+            </div>
+
+            <h4 className="fw-bold mb-3">¿Eliminar este chequeo?</h4>
+            <p className="text-white-50 px-4">
+              Estás a punto de borrar permanentemente el registro de inspección seleccionado.
+            </p>
+
+            <div className="alert alert-danger d-inline-block mt-2 px-4 py-2" style={{ backgroundColor: "rgba(220, 53, 69, 0.1)", border: "1px solid #dc3545", color: "#ffcccc" }}>
+               <strong>ID Registro:</strong> {checkToDelete}
+            </div>
+            
+            <p className="small text-danger fw-bold mt-3 mb-0">
+              ⚠️ Esta acción no se puede deshacer.
+            </p>
+          </Modal.Body>
+
+          <Modal.Footer style={{ backgroundColor: "#0F2537", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+            <Button 
+              variant="outline-light" 
+              className="rounded-pill px-4 border-0 opacity-75"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancelar
             </Button>
-            <Button style={buttonStyle} className="rounded-pill" onClick={downloadPDF}>
-              📄 Descargar PDF
+            <Button 
+              variant="danger" 
+              className="rounded-pill px-4 fw-bold"
+              onClick={executeDelete}
+              style={{ 
+                background: "linear-gradient(90deg, #dc3545, #b02a37)", 
+                boxShadow: "0 4px 15px rgba(220, 53, 69, 0.5)", 
+                border: "none"
+              }}
+            >
+              Sí, Eliminar
             </Button>
           </Modal.Footer>
         </Modal>
+
       </div>
     </div>
   );

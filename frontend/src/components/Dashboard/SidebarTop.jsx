@@ -18,6 +18,7 @@ export default function SidebarTop() {
     { label: "Storage", path: "/storage", icon: <FaWarehouse /> },
     { label: "Equipos", path: "/medications", icon: <FaPills /> },
     { label: "Activity Log", path: "/activity-log", icon: <FaListAlt /> },  // ✅ NUEVA SECCIÓN
+    { label: "Recomendaciones", path: "/recomendations", icon: <FaWarehouse /> },    
     { label: "QR-list", path: "/QR-list", icon: <FaQrcode /> }, 
   ];
 

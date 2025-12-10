@@ -16,10 +16,10 @@ const normalize = (txt = "") =>
 const AMBULANCE_UNITS = ["CM1", "CM2", "CM3", "S56"];
 const SHIFTS = ["6-2", "8-4", "12-8", "1-9", "2-10", "3-11", "4-12"];
 const PARAMEDICS_LIST = [
-  "A. Rodriguez - La Bestia",
-  "K. Colon - La Jefa",
+  "A. Rodriguez",
+  "K. Colon",
   "R. Rodriguez",
-  "R. Torres (Supervisor)",
+  "R. Torres",
   "A. Cruz",
   "J. Ortiz",
 ];
@@ -30,12 +30,11 @@ const EQUIPMENT_CATEGORIES = [
   "Canalización",
   "Airway / Oxígeno",
   "Equipo",
-  "Bulto de trauma",
   "Entubación",
   // Agrega otras si las usas en ambulancias/almacén:
-  // "Misceláneos",
-  // "Ventilacion & Monitor",
-  // "Equipo / Vitales",
+  "Misceláneos",
+  "Ventilacion & Monitor",
+  "Equipo / Vitales",
 ];
 
 export default function MedicationExpenseForm() {

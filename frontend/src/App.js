@@ -20,6 +20,7 @@ import Login from "./components/Auth/Login";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 
 import logo from "./assets/image.png";
+import RecommendedList from "./components/Recommended/RecommendedList";
 
 // 🔹 Wrappers para pasar la unidad a los componentes
 function AmbulanceEquipmentWrapper() {
@@ -67,6 +68,7 @@ export default function App() {
                     <Route path="/medications" element={<MedicationExpensesPage />} />
                     <Route path="/activity-log" element={<ActivityLog />} />
                     <Route path="/qr-list" element={<QRList />} />
+                    <Route path="/recomendations" element={<RecommendedList />} />
 
                     {/* Rutas con unidad */}
                     <Route path="/ambulances/:unit/checks" element={<AmbulanceCheckListWrapper />} />

@@ -13,6 +13,10 @@ export default function MedicationExpensesPage() {
   const [loading, setLoading] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  
+  // 🆕 ESTADOS PARA EL MODAL DE CONFIRMACIÓN
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState(null);
 
   // 🔹 Función para cargar gastos
   const fetchExpenses = async () => {
@@ -64,18 +68,32 @@ export default function MedicationExpensesPage() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("⚠️ ¿Seguro que deseas eliminar este registro?")) return;
+  // 🆕 Función que abre el modal de confirmación
+  const confirmDeletion = (id) => {
+    setItemToDeleteId(id);
+    setShowConfirmModal(true);
+  };
+
+  // 🔹 Función para la eliminación efectiva (llamada desde el modal)
+  const handleDeleteConfirmed = async () => {
+    setShowConfirmModal(false); // Cierra el modal inmediatamente
+    const id = itemToDeleteId;
+
     try {
       await api.delete(`/medexpenses/${id}/`);
-      alert("✅ Registro eliminado correctamente");
+      // Mejora: podrías usar una librería de notificaciones toast para un mejor UX
+      alert("✅ Registro eliminado correctamente"); 
       fetchExpenses();
+      
+      // Actualiza el modal de detalle si estaba abierto
       if (selectedGroup) {
         setSelectedGroup(selectedGroup.filter((item) => item.id !== id));
       }
     } catch (err) {
       console.error(err);
       alert("❌ Error al eliminar el registro");
+    } finally {
+        setItemToDeleteId(null);
     }
   };
 
@@ -125,6 +143,37 @@ export default function MedicationExpensesPage() {
     border: "none",
     fontWeight: 600,
   };
+
+  // 🆕 Componente Modal de Confirmación
+  const ConfirmationModal = () => (
+    <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
+      <Modal.Header closeButton style={{ backgroundColor: "#101728", borderBottom: "1px solid #dc3545" }}>
+        <Modal.Title style={{ color: "#dc3545", fontWeight: 700 }}>
+            <span role="img" aria-label="Warning">⚠️</span> Confirmar Eliminación
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body style={{ backgroundColor: "#101728", color: "#F4F7FA" }}>
+        <p>Estás a punto de **eliminar permanentemente** este registro de gasto.</p>
+        <p>Esta acción no se puede deshacer. ¿Deseas continuar?</p>
+      </Modal.Body>
+      <Modal.Footer style={{ backgroundColor: "#101728", borderTop: "1px solid #1e2b4a" }}>
+        <Button 
+            variant="secondary" 
+            className="rounded-pill" 
+            onClick={() => setShowConfirmModal(false)}
+        >
+            Cancelar
+        </Button>
+        <Button 
+            variant="danger" 
+            className="rounded-pill" 
+            onClick={handleDeleteConfirmed}
+        >
+            <span role="img" aria-label="Trash">🗑️</span> Eliminar Permanentemente
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
 
   return (
     <div className="d-flex">
@@ -221,7 +270,16 @@ export default function MedicationExpensesPage() {
                         <td className="d-flex justify-content-center gap-2">
                           <Button size="sm" style={buttonStyle} className="rounded-pill" onClick={() => handleViewGroup(key)}>👁️ Ver</Button>
                           <Button size="sm" style={buttonStyle} className="rounded-pill" onClick={() => downloadPDF(group)}>📥 Descargar</Button>
-                          <Button size="sm" style={{ backgroundColor: "#dc3545", border: "none", color: "#fff" }} className="rounded-pill" onClick={() => handleDelete(group[0].id)}>🗑️ Eliminar</Button>
+                          
+                          {/* 🆕 LLAMA AL MODAL DE CONFIRMACIÓN */}
+                          <Button 
+                            size="sm" 
+                            style={{ backgroundColor: "#dc3545", border: "none", color: "#fff" }} 
+                            className="rounded-pill" 
+                            onClick={() => confirmDeletion(group[0].id)}
+                          >
+                            🗑️ Eliminar
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -260,7 +318,15 @@ export default function MedicationExpensesPage() {
                           <td>{item.medicine}</td>
                           <td>{item.quantity}</td>
                           <td>
-                            <Button size="sm" style={{ backgroundColor: "#dc3545", border: "none", color: "#fff" }} className="rounded-pill" onClick={() => handleDelete(item.id)}>🗑️ Eliminar</Button>
+                            {/* 🆕 LLAMA AL MODAL DE CONFIRMACIÓN */}
+                            <Button 
+                                size="sm" 
+                                style={{ backgroundColor: "#dc3545", border: "none", color: "#fff" }} 
+                                className="rounded-pill" 
+                                onClick={() => confirmDeletion(item.id)}
+                            >
+                                🗑️ Eliminar
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -273,6 +339,9 @@ export default function MedicationExpensesPage() {
               <Button style={buttonStyle} className="rounded-pill" onClick={() => setShowModal(false)}>Cerrar</Button>
             </Modal.Footer>
           </Modal>
+
+          {/* 🆕 AÑADIR EL MODAL DE CONFIRMACIÓN AL JSX */}
+          <ConfirmationModal />
         </Container>
       </div>
     </div>

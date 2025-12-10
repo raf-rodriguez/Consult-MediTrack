@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AmbulanceCheck, InventoryItem, Transfer, MedicationExpense, AmbulanceInventory, AmbulanceRequisition
+from .models import AmbulanceCheck, InventoryItem, Transfer, MedicationExpense, AmbulanceInventory, AmbulanceRequisition, RecommendedInventory, InventoryItem
 from django.contrib.auth.models import User
 from .models import StockAlert
 
@@ -7,6 +7,13 @@ from .models import StockAlert
 #           Ambulance Check
 #------------------------------------
 class AmbulanceCheckSerializer(serializers.ModelSerializer):
+    # Campo de escritura para recibir los faltantes desde React
+    missing_items = serializers.ListField(
+        child=serializers.DictField(), 
+        write_only=True, 
+        required=False
+    )
+
     class Meta:
         model = AmbulanceCheck
         fields = '__all__'
@@ -15,6 +22,7 @@ class AmbulanceCheckSerializer(serializers.ModelSerializer):
 #           Inventory
 #------------------------------------
 class InventoryItemSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = InventoryItem
         fields = '__all__'
@@ -44,14 +52,6 @@ class AmbulanceInventorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 # -----------------------------------
-#           Inventory <----> por el momento no se esta usando 
-#------------------------------------
-#class InventoryItemSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = InventoryItem
-#        fields = ['id', 'name', 'unit', 'quantity', 'location', 'category']
-
-# -----------------------------------
 #        Ambulance Requisition
 #------------------------------------
 class AmbulanceRequisitionSerializer(serializers.ModelSerializer):
@@ -70,3 +70,49 @@ class StockAlertSerializer(serializers.ModelSerializer):
     class Meta:
         model = StockAlert
         fields = ['id', 'item', 'item_name', 'message', 'viewed', 'date']
+
+
+# -----------------------------------
+#           Recomendaciones 
+#------------------------------------
+# En serializers.py
+class RecommendedInventorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecommendedInventory
+        fields = '__all__'
+        extra_kwargs = {
+            'item': {'required': False, 'allow_null': True}
+        }
+
+#-----------------------------------
+class InventoryItemWithMetaSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    quantity = serializers.IntegerField()
+    category = serializers.CharField()
+    min_stock = serializers.IntegerField(default=1)
+    unit = serializers.CharField(default="unidades")
+    recommended_quantity = serializers.IntegerField()
+    ambulance = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+    def create(self, validated_data):
+        from .models import InventoryItem, RecommendedInventory
+
+        # Crear inventario de almacén
+        item = InventoryItem.objects.create(
+            name=validated_data["name"],
+            quantity=validated_data["quantity"],
+            category=validated_data["category"],
+            min_stock=validated_data["min_stock"],
+            unit=validated_data["unit"],
+        )
+
+        # Crear meta de hoja de chequeo
+        RecommendedInventory.objects.create(
+            item=item,
+            item_name=item.name,
+            category=item.category,
+            ambulance=validated_data.get("ambulance", None),
+            recommended_quantity=validated_data["recommended_quantity"],
+        )
+
+        return item
